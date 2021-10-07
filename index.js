@@ -3,7 +3,7 @@ var morgan = require('morgan')
 
 const app = express()
 app.use(express.json())
-app.use(morgan('tiny'))
+/* app.use(morgan('tiny')) */
 morgan.token('body', (req, res) => {
     if (req.method === 'POST') {
         return JSON.stringify(req.body)
@@ -12,6 +12,8 @@ morgan.token('body', (req, res) => {
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'))
 const cors = require('cors')
 app.use(cors())
+app.use(express.static('build'))
+
 
 
 let persons = [
@@ -35,6 +37,11 @@ let persons = [
         "number": "39-23-6423122",
         "id": 4
     },
+    {
+        "name": "Mary Poppejndiecktpthp",
+        "number": "39-23-6423122",
+        "id": 5
+    },
 ]
 /* const generateId = () => {
     const maxId = persons.length > 0
@@ -45,13 +52,14 @@ let persons = [
 
 app.post('/api/persons', (request, response) => {
     const body = request.body
-    if (!body.content) {
+    console.log(body.name);
+    if (!body.name) {
         return response.status(400).json({
             error: 'content missing'
         })
     }
-    const name = body.content.name
-    const number = body.content.number
+    const name = body.name
+    const number = body.number
     if (name == '' || number == '') return response.status(400).json({ error: 'name or number is empty' })
     if (persons.find(p => p.name == name)) return response.status(400).json({ error: 'name must be unique' })
     else {
@@ -61,7 +69,7 @@ app.post('/api/persons', (request, response) => {
             id: Math.floor(Math.random() * 10000000),
         }
         persons = persons.concat(person)
-        response.json(persons)
+        response.json(person)
     }
 })
 
