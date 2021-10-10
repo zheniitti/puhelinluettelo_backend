@@ -12,6 +12,7 @@ else {
     const url =
         `mongodb+srv://fullstack21:${password}@cluster0.sfml8.mongodb.net/phonebook?retryWrites=true&w=majority`
     mongoose.connect(url)
+
     const personSchema = new mongoose.Schema({
         name: String,
         number: String,

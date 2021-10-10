@@ -1,6 +1,5 @@
 const express = require('express')
 var morgan = require('morgan')
-
 const app = express()
 app.use(express.json())
 /* app.use(morgan('tiny')) */
@@ -14,7 +13,10 @@ const cors = require('cors')
 app.use(cors())
 app.use(express.static('build'))
 
-
+require('dotenv').config()
+const Person = require('./models/person')
+/* const PORT = process.env.PORT
+ */
 
 let persons = [
     {
@@ -50,6 +52,15 @@ let persons = [
     return maxId + 1
 } */
 
+app.get('/api/persons', (req, res) => {
+    const id = (Number)
+    Person.find({}).then(result => {
+        persons = result
+        res.json((persons))
+        console.log('app.get /api/persons: ', persons)
+    })
+})
+
 app.post('/api/persons', (request, response) => {
     const body = request.body
     console.log(body.name);
@@ -63,13 +74,20 @@ app.post('/api/persons', (request, response) => {
     if (name == '' || number == '') return response.status(400).json({ error: 'name or number is empty' })
     if (persons.find(p => p.name == name)) return response.status(400).json({ error: 'name must be unique' })
     else {
-        const person = {
+        /* const person = {
             name: name,
             number: number,
             id: Math.floor(Math.random() * 10000000),
         }
-        persons = persons.concat(person)
-        response.json(person)
+        persons = persons.concat(person) */
+        const newPerson = new Person({
+            name: name,
+            number: number,
+        })
+        newPerson.save().then(response => {
+            console.log(`added ${name} number ${number} to phonebook`)
+        })
+        response.json(newPerson)
     }
 })
 
@@ -83,12 +101,7 @@ app.get('/info', (req, res) => {
     res.send(`<h1>Phonebook has info for ${persons.length} people</h1><h1>${str} ${today.getTimezoneOffset()}</h1>`)
 })
 
-app.get('/api/persons', (req, res) => {
 
-    const id = (Number)
-    res.json((persons))
-    console.log(JSON.stringify(persons))
-})
 
 app.get('/api/persons/:id', (req, res) => {
 
