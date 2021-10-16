@@ -17,9 +17,11 @@ require('dotenv').config()
 const Person = require('./models/person')
 
 const errorHandler = (error, request, response, next) => {
-    console.log('errorHandler: -----------------------------------------------------------'
-        , error.message);
-    console.log('end errorHaler ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^');
+    console.log('errorHandler: ', error.message);
+
+    if (error.name === 'ValidationError') {
+        return response.status(400).json(error)
+    }
     next(error)
 }
 
@@ -50,10 +52,6 @@ let persons = [
         "id": 5
     },
 ]
-Person.find({}).then(result => {
-    persons = result
-    console.log('persons: ', persons);
-}).catch(error => { next(error) })
 
 /* const generateId = () => {
     const maxId = persons.length > 0
@@ -61,6 +59,9 @@ Person.find({}).then(result => {
         : 0
     return maxId + 1
 } */
+
+
+
 app.put('/api/persons/:id', (request, response, next) => {
     const id = request.params.id
     const updatedPerson = request.body
@@ -74,11 +75,8 @@ app.put('/api/persons/:id', (request, response, next) => {
 })
 
 
-
-app.delete('/api/persons/:id', (request, response) => {
-    /* const id = Number(request.params.id)
-    persons = persons.filter(p => p.id !== id) */
-    console.log('deleting person with id', request.params.id);
+app.delete('/api/persons/:id', (request, response, next) => {
+    console.log('Deleting person with id', request.params.id);
     Person.findByIdAndRemove(request.params.id).then(result => {
         if (result) {
             persons = result
@@ -88,52 +86,25 @@ app.delete('/api/persons/:id', (request, response) => {
         else {
             response.status(404).end()
         }
-    }).catch(error => {
-        console.log(error)
-        response.status(500).end()
-    })
+    }).catch(error => next(error))
 })
 
+//uuden henkilön lisääminen
 app.post('/api/persons', (request, response, next) => {
     const body = request.body
-    console.log(body.name);
-    if (!body.name) {
-        return response.status(400).json({
-            error: 'content missing'
-        })
-    }
-    const name = body.name
-    const number = body.number
-    if (name == '' || number == '') return response.status(400).json({ error: 'name or number is empty' })
-    if (persons.find(p => p.name == name)) return response.status(400).json({ error: 'name must be unique' })
-    else {
-        /* const person = {
-            name: name,
-            number: number,
-            id: Math.floor(Math.random() * 10000000),
-        }
-        persons = persons.concat(person) */
-        const newPerson = new Person({
-            name: name,
-            number: number,
-        })
-        newPerson.save().then(response => {
-            console.log(`added ${name} number ${number} to phonebook`)
-        })
+
+    const newPerson = new Person({
+        name: body.name,
+        number: body.number,
+    })
+
+    newPerson.save().then(savedPerson => {
+        console.log(`Added ${savedPerson.name} number ${savedPerson.number} to phonebook`)
         response.json(newPerson)
+    }).catch(error => {
+        next(error)
+    })
 
-    }
-})
-
-
-
-app.get('/info', (req, res, next) => {
-    /*  var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-     var prnDt = '' + new Date().toLocaleTimeString('en-us', options); */
-    var today = new Date();
-    var str = today.toUTCString();
-    res.send(`<h1>Phonebook has info for ${persons.length} people</h1><h1>${str} ${today.getTimezoneOffset()}</h1>`)
-        .catch(error => next(error))
 })
 
 app.get('/api/persons', (request, response, next) => {
@@ -143,20 +114,21 @@ app.get('/api/persons', (request, response, next) => {
     }).catch(error => { next(error) })
 })
 
-app.get('/api/persons/:id', (req, res) => {
-    const id = req.params.id
-    const person = persons.find(p => {
-        return p.id === id
-    })
-    console.log('get Person by id: ', person);
-    if (person) {
-        res.json(person)
-    } else {
-        res.status(404).end()
-    }
+app.get('/api/persons/:id', (request, response, next) => {
+    console.log(request.params.id);
+    Person.findById(request.params.id).then(result => {
+        response.json((result))
+    }).catch(error => { next(error) })
 })
 
-
+app.get('/info', (request, response, next) => {
+    /*  var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+     var prnDt = '' + new Date().toLocaleTimeString('en-us', options); */
+    var today = new Date();
+    var str = today.toUTCString();
+    response.send(`<h1>Phonebook has info for ${persons.length} people</h1><h1>${str} ${today.getTimezoneOffset()}</h1>`)
+        .catch(error => next(error))
+})
 
 app.use(errorHandler)
 
