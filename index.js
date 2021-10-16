@@ -15,8 +15,13 @@ app.use(express.static('build'))
 
 require('dotenv').config()
 const Person = require('./models/person')
-/* const PORT = process.env.PORT
- */
+
+const errorHandler = (error, request, response, next) => {
+    console.log('errorHandler: -----------------------------------------------------------'
+        , error.message);
+    console.log('end errorHaler ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^');
+    next(error)
+}
 
 let persons = [
     {
@@ -45,23 +50,51 @@ let persons = [
         "id": 5
     },
 ]
+Person.find({}).then(result => {
+    persons = result
+    console.log('persons: ', persons);
+}).catch(error => { next(error) })
+
 /* const generateId = () => {
     const maxId = persons.length > 0
         ? Math.max(...persons.map(n => n.id))
         : 0
     return maxId + 1
 } */
+app.put('/api/persons/:id', (request, response, next) => {
+    const id = request.params.id
+    const updatedPerson = request.body
 
-app.get('/api/persons', (req, res) => {
-    const id = (Number)
-    Person.find({}).then(result => {
-        persons = result
-        res.json((persons))
-        console.log('app.get /api/persons: ', persons)
+    console.log('Updating person with id: ', id, updatedPerson);
+
+    Person.findByIdAndUpdate(id, updatedPerson).then(result => {
+        response.json(result)
+        console.log('Upateded person successfully');
+    }).catch(error => { next(error) })
+})
+
+
+
+app.delete('/api/persons/:id', (request, response) => {
+    /* const id = Number(request.params.id)
+    persons = persons.filter(p => p.id !== id) */
+    console.log('deleting person with id', request.params.id);
+    Person.findByIdAndRemove(request.params.id).then(result => {
+        if (result) {
+            persons = result
+            response.json((persons))
+            response.status(204).end()
+        }
+        else {
+            response.status(404).end()
+        }
+    }).catch(error => {
+        console.log(error)
+        response.status(500).end()
     })
 })
 
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response, next) => {
     const body = request.body
     console.log(body.name);
     if (!body.name) {
@@ -88,27 +121,34 @@ app.post('/api/persons', (request, response) => {
             console.log(`added ${name} number ${number} to phonebook`)
         })
         response.json(newPerson)
+
     }
 })
 
-app.get('/info', (req, res) => {
 
+
+app.get('/info', (req, res, next) => {
     /*  var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
      var prnDt = '' + new Date().toLocaleTimeString('en-us', options); */
-
     var today = new Date();
-    var str = today.toUTCString();  // deprecated! use toUTCString()
+    var str = today.toUTCString();
     res.send(`<h1>Phonebook has info for ${persons.length} people</h1><h1>${str} ${today.getTimezoneOffset()}</h1>`)
+        .catch(error => next(error))
 })
 
-
+app.get('/api/persons', (request, response, next) => {
+    Person.find({}).then(result => {
+        persons = result
+        response.json((persons))
+    }).catch(error => { next(error) })
+})
 
 app.get('/api/persons/:id', (req, res) => {
-
-    const id = Number(req.params.id)
-    console.log(id);
-    const person = persons.find(p => p.id === id)
-    console.log(person)
+    const id = req.params.id
+    const person = persons.find(p => {
+        return p.id === id
+    })
+    console.log('get Person by id: ', person);
     if (person) {
         res.json(person)
     } else {
@@ -116,12 +156,9 @@ app.get('/api/persons/:id', (req, res) => {
     }
 })
 
-app.delete('/api/persons/:id', (request, response) => {
 
-    const id = Number(request.params.id)
-    persons = persons.filter(p => p.id !== id)
-    response.status(204).end()
-})
+
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 3002
 app.listen(PORT, () => {

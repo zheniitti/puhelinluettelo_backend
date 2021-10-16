@@ -1,6 +1,7 @@
 const mongoose = require('mongoose')
 
-const password = process.argv[2]
+/* const password = process.argv[2] */
+
 const databaseUrl = process.env.MONGODB_URI
 
 console.log('connecting to', databaseUrl)
